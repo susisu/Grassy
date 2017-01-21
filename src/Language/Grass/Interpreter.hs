@@ -21,7 +21,7 @@ data Value = Char Word8
            | Prim Name (Value -> IO Value)
            | Clos Env Code
 
-data State = State {
+data VMState = VMState {
         code :: Code,
         env  :: Env,
         dump :: [(Code, Env)]
