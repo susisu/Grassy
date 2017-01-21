@@ -7,7 +7,16 @@ module Language.Grass.Interpreter
 import Data.Char
 import Data.Word
 
+import Control.Monad.Except
+
 data Pos = forall p. Show p => Pos p
+
+data RuntimeError = RuntimeError {
+        errPos :: Pos,
+        errMsg :: String
+    }
+
+type VM = ExceptT RuntimeError IO
 
 type Index = Int
 type Arity = Int
@@ -18,7 +27,7 @@ data Inst  = App Pos Index Index
 type Name  = String
 type Env   = [Value]
 data Value = Char Word8
-           | Prim Name (Value -> IO Value)
+           | Prim Name (Value -> VM Value)
            | Clos Env Code
 
 data VMState = VMState {
@@ -47,7 +56,7 @@ valIn = Prim "IN" (\_ -> undefined)
 
 valOut :: Value
 valOut = Prim "OUT" (\val -> case val of
-        Char c -> putChar (chr $ fromEnum c) >> return val
+        Char c -> liftIO (putChar (chr $ fromEnum c)) >> return val
         _      -> undefined
     )
 
