@@ -64,13 +64,13 @@ valIn = Prim "IN" (\val -> liftIO (optionIO val (fromChar <$> getChar)))
 valOut :: Value
 valOut = Prim "OUT" (\val -> case val of
         Char c -> liftIO (putChar (chr $ fromEnum c)) >> return val
-        _      -> undefined
+        _      -> throwError $ RuntimeError (Pos "VM::OUT") "not a character"
     )
 
 valSucc :: Value
 valSucc = Prim "SUCC" (\val -> case val of
         Char c -> return $ Char (succ c)
-        _      -> undefined
+        _      -> throwError $ RuntimeError (Pos "VM::SUCC") "not a character"
     )
 
 initEnv :: Env
