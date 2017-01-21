@@ -40,6 +40,7 @@ data VMState = VMState {
 vmPos :: Pos
 vmPos = Pos "VM"
 
+
 closId :: Value
 closId = Clos [] []
 
@@ -49,24 +50,26 @@ closFalse = Clos [] [Abs vmPos 1 []]
 closTrue :: Value
 closTrue = Clos [closId] [Abs vmPos 1 [App vmPos 2 1]]
 
+
 charLowerW :: Value
 charLowerW = Char 119
 
-fromChar :: Char -> Value
-fromChar c = Char $ toEnum (ord c `mod` 0x100)
+
+charToWrod8 :: Char -> Word8
+charToWrod8 c = toEnum (ord c `mod` 0x100)
+
+word8ToChar :: Word8 -> Char
+word8ToChar w = chr $ fromEnum w
 
 optionIO :: a -> IO a -> IO a
 optionIO x m = m `catch` (\(e :: IOException) -> return x)
 
 primIn :: Value
-primIn = Prim "IN" (\val -> liftIO (optionIO val (fromChar <$> getChar)))
-
-toChar :: Word8 -> Char
-toChar w = chr $ fromEnum w
+primIn = Prim "IN" (\val -> liftIO (optionIO val (Char . charToWrod8 <$> getChar)))
 
 primOut :: Value
 primOut = Prim "OUT" (\val -> case val of
-        Char w -> liftIO (putChar $ toChar w) >> return val
+        Char w -> liftIO (putChar $ word8ToChar w) >> return val
         _      -> throwError $ RuntimeError (Pos "VM::OUT") "not a character"
     )
 
@@ -75,6 +78,7 @@ primSucc = Prim "SUCC" (\val -> case val of
         Char w -> return $ Char (succ w)
         _      -> throwError $ RuntimeError (Pos "VM::SUCC") "not a character"
     )
+
 
 initEnv :: Env
 initEnv = [primOut, primSucc, charLowerW, primIn]
