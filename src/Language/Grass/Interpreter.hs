@@ -1,4 +1,5 @@
 {-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Language.Grass.Interpreter
     (
@@ -6,7 +7,7 @@ module Language.Grass.Interpreter
 
 import Data.Char
 import Data.Word
-
+import Control.Exception
 import Control.Monad.Except
 
 data Pos = forall p. Show p => Pos p
@@ -51,8 +52,14 @@ valTrue = Clos [valId] [Abs vmPos 1 [App vmPos 2 1]]
 valLowerW :: Value
 valLowerW = Char 119
 
+fromChar :: Char -> Value
+fromChar c = Char $ toEnum (ord c `mod` 0x100)
+
+optionIO :: a -> IO a -> IO a
+optionIO x m = m `catch` (\(e :: IOException) -> return x)
+
 valIn :: Value
-valIn = Prim "IN" (\_ -> undefined)
+valIn = Prim "IN" (\val -> liftIO (optionIO val (fromChar <$> getChar)))
 
 valOut :: Value
 valOut = Prim "OUT" (\val -> case val of
