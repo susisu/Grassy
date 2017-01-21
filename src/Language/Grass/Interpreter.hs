@@ -40,17 +40,17 @@ data VMState = VMState {
 vmPos :: Pos
 vmPos = Pos "VM"
 
-valId :: Value
-valId = Clos [] []
+closId :: Value
+closId = Clos [] []
 
-valFalse :: Value
-valFalse = Clos [] [Abs vmPos 1 []]
+closFalse :: Value
+closFalse = Clos [] [Abs vmPos 1 []]
 
-valTrue :: Value
-valTrue = Clos [valId] [Abs vmPos 1 [App vmPos 2 1]]
+closTrue :: Value
+closTrue = Clos [closId] [Abs vmPos 1 [App vmPos 2 1]]
 
-valLowerW :: Value
-valLowerW = Char 119
+charLowerW :: Value
+charLowerW = Char 119
 
 fromChar :: Char -> Value
 fromChar c = Char $ toEnum (ord c `mod` 0x100)
@@ -58,23 +58,26 @@ fromChar c = Char $ toEnum (ord c `mod` 0x100)
 optionIO :: a -> IO a -> IO a
 optionIO x m = m `catch` (\(e :: IOException) -> return x)
 
-valIn :: Value
-valIn = Prim "IN" (\val -> liftIO (optionIO val (fromChar <$> getChar)))
+primIn :: Value
+primIn = Prim "IN" (\val -> liftIO (optionIO val (fromChar <$> getChar)))
 
-valOut :: Value
-valOut = Prim "OUT" (\val -> case val of
-        Char c -> liftIO (putChar (chr $ fromEnum c)) >> return val
+toChar :: Word8 -> Char
+toChar w = chr $ fromEnum w
+
+primOut :: Value
+primOut = Prim "OUT" (\val -> case val of
+        Char w -> liftIO (putChar $ toChar w) >> return val
         _      -> throwError $ RuntimeError (Pos "VM::OUT") "not a character"
     )
 
-valSucc :: Value
-valSucc = Prim "SUCC" (\val -> case val of
-        Char c -> return $ Char (succ c)
+primSucc :: Value
+primSucc = Prim "SUCC" (\val -> case val of
+        Char w -> return $ Char (succ w)
         _      -> throwError $ RuntimeError (Pos "VM::SUCC") "not a character"
     )
 
 initEnv :: Env
-initEnv = [valOut, valSucc, valLowerW, valIn]
+initEnv = [primOut, primSucc, charLowerW, primIn]
 
 initDump :: [(Code, Env)]
 initDump = [([App vmPos 0 0], []), ([], [])]
