@@ -61,6 +61,11 @@ charToWrod8 c = toEnum (ord c `mod` 0x100)
 word8ToChar :: Word8 -> Char
 word8ToChar w = chr $ fromEnum w
 
+periodicSucc :: Word8 -> Word8
+periodicSucc w
+    | w == maxBound = minBound
+    | otherwise     = w + 1
+
 optionIO :: a -> IO a -> IO a
 optionIO x m = m `catch` (\(e :: IOException) -> return x)
 
@@ -75,7 +80,7 @@ primOut = Prim "OUT" (\val -> case val of
 
 primSucc :: Value
 primSucc = Prim "SUCC" (\val -> case val of
-        Char w -> return $ Char (succ w)
+        Char w -> return $ Char (periodicSucc w)
         _      -> throwError $ RuntimeError (Pos "VM::SUCC") "not a character"
     )
 
