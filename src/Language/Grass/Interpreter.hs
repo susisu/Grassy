@@ -113,7 +113,7 @@ eval (VMState (App pos m n : c) e d) = do
     case f of
         Char w     -> eval (VMState c (eqChar w a : e) d)
         Prim p     -> p a >>= \x -> eval (VMState c (x : e) d)
-        Clos em cm -> if null c
+        Clos em cm -> if null c && not (null d)
             then eval (VMState cm (a : em) d)
             else eval (VMState cm (a : em) ((c, e) : d))
 eval (VMState (Abs pos n c' : c) e d)
