@@ -75,13 +75,13 @@ primIn = Prim "IN" (\val -> liftIO (optionIO val (Char . charToWrod8 <$> getChar
 primOut :: Value
 primOut = Prim "OUT" (\val -> case val of
         Char w -> liftIO (putChar $ word8ToChar w) >> return val
-        _      -> throwError $ RuntimeError (Pos "VM::OUT") "not a character"
+        _      -> throwError $ RuntimeError vmPos "OUT: not a character"
     )
 
 primSucc :: Value
 primSucc = Prim "SUCC" (\val -> case val of
         Char w -> return $ Char (periodicSucc w)
-        _      -> throwError $ RuntimeError (Pos "VM::SUCC") "not a character"
+        _      -> throwError $ RuntimeError vmPos "SUCC: not a character"
     )
 
 
