@@ -17,6 +17,7 @@ library
   hs-source-dirs:      src
   exposed-modules:     Language.Grass
                      , Language.Grass.Interpreter
+                     , Language.Grass.Interpreter.VM
   build-depends:       base >= 4.7 && < 5
                      , bytestring
                      , mtl
