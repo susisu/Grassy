@@ -125,7 +125,7 @@ eval (VMState (App pos m n : c) e d) = do
             then eval (VMState cm (a : em) d)
             else eval (VMState cm (a : em) ((c, e) : d))
 eval (VMState (Abs pos n c' : c) e d)
-    | n == 0    = eval (VMState c (Clos e c' : e) d)
+    | n <= 1    = eval (VMState c (Clos e c' : e) d)
     | otherwise = eval (VMState c (Clos e [Abs pos (n - 1) c'] : e) d)
 eval _ = throwError $ RuntimeError vmPos "unknown VM state"
 
