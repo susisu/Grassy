@@ -1,15 +1,15 @@
 {-# LANGUAGE ExistentialQuantification #-}
-{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 module Language.Grass.Interpreter
     (
     ) where
 
-import Data.Char
+import qualified Data.ByteString as BS
 import Data.Word
-import Control.Exception
 import Control.Monad.Except
 import Safe
+import System.IO
 
 data Pos = forall p. Show p => Pos p
 
@@ -54,35 +54,37 @@ charLowerW :: Value
 charLowerW = Char 119
 
 
-charToWrod8 :: Char -> Word8
-charToWrod8 c = toEnum (ord c `mod` 0x100)
+getWord8 :: IO (Maybe Word8)
+getWord8 = do
+    b <- BS.hGet stdin 1
+    if BS.null b
+        then return Nothing
+        else return $ Just (BS.head b)
 
-word8ToChar :: Word8 -> Char
-word8ToChar w = chr $ fromEnum w
+putWord8 :: Word8 -> IO ()
+putWord8 w = BS.hPut stdout (BS.singleton w)
 
 periodicSucc :: Word8 -> Word8
 periodicSucc w
     | w == maxBound = minBound
     | otherwise     = w + 1
 
-optionIO :: a -> IO a -> IO a
-optionIO x m = m `catch` (\(e :: IOException) -> return x)
-
 primIn :: Value
-primIn = Prim (\x -> liftIO (optionIO x (Char . charToWrod8 <$> getChar)))
+primIn = Prim op
+    where
+        op x = maybe x Char <$> liftIO getWord8
 
 primOut :: Value
-primOut = Prim (\x -> case x of
-        Char w -> liftIO (putChar $ word8ToChar w) >> return x
-        _      -> throwError $ RuntimeError vmPos "OUT: not a character"
-    )
+primOut = Prim op
+    where
+        op x@(Char w) = liftIO (putWord8 w) >> return x
+        op _          = throwError $ RuntimeError vmPos "OUT: not a character"
 
 primSucc :: Value
-primSucc = Prim (\x -> case x of
-        Char w -> return $ Char (periodicSucc w)
-        _      -> throwError $ RuntimeError vmPos "SUCC: not a character"
-    )
-
+primSucc = Prim op
+    where
+        op (Char w) = return $ Char (periodicSucc w)
+        op _        = throwError $ RuntimeError vmPos "SUCC: not a character"
 
 initEnv :: Env
 initEnv = [primOut, primSucc, charLowerW, primIn]
