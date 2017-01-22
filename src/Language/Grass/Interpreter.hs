@@ -25,10 +25,9 @@ type Code  = [Inst]
 data Inst  = App Pos Index Index
            | Abs Pos Arity Code
 
-type Name  = String
 type Env   = [Value]
 data Value = Char Word8
-           | Prim Name (Value -> VM Value)
+           | Prim (Value -> VM Value)
            | Clos Env Code
 
 data VMState = VMState {
@@ -70,16 +69,16 @@ optionIO :: a -> IO a -> IO a
 optionIO x m = m `catch` (\(e :: IOException) -> return x)
 
 primIn :: Value
-primIn = Prim "IN" (\val -> liftIO (optionIO val (Char . charToWrod8 <$> getChar)))
+primIn = Prim (\val -> liftIO (optionIO val (Char . charToWrod8 <$> getChar)))
 
 primOut :: Value
-primOut = Prim "OUT" (\val -> case val of
+primOut = Prim (\val -> case val of
         Char w -> liftIO (putChar $ word8ToChar w) >> return val
         _      -> throwError $ RuntimeError vmPos "OUT: not a character"
     )
 
 primSucc :: Value
-primSucc = Prim "SUCC" (\val -> case val of
+primSucc = Prim (\val -> case val of
         Char w -> return $ Char (periodicSucc w)
         _      -> throwError $ RuntimeError vmPos "SUCC: not a character"
     )
