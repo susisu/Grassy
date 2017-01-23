@@ -130,10 +130,10 @@ eval (VMState (Abs pos n c' : c) e d)
 eval _ = throwError $ RuntimeError vmPos "unknown VM state"
 
 run :: Code -> IO (Either RuntimeError ())
-run code = do
+run code = runExceptT $ do
     let initState = VMState code initEnv initDump
-    _ <- runExceptT $ eval initState
-    return $ Right ()
+    _ <-eval initState
+    return ()
     where
         initEnv  = [primOut, primSucc, charLowerW, primIn]
         initDump = [([App vmPos 0 0], []), ([], [])]
