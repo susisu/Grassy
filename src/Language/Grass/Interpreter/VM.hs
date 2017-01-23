@@ -37,7 +37,7 @@ data Value = Char Word8               -- character
 data RuntimeError = RuntimeError Pos String
 
 instance Show RuntimeError where
-    show (RuntimeError pos msg) = "RuntimeError at " ++ show pos ++ ":\n" ++ msg
+    show (RuntimeError pos msg) = show pos ++ ":\n" ++ msg
 
 type VM = ExceptT RuntimeError IO
 
