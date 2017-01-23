@@ -112,6 +112,11 @@ eqChar w (Char v)
     | otherwise = closFalse
 eqChar _ _ = closFalse
 
+withPos :: Pos -> VM a -> VM a
+withPos pos m = withExceptT setPos m
+    where
+        setPos (RuntimeError _ msg) = RuntimeError pos msg
+
 eval :: VMState -> VM Value
 eval (VMState [] (x : []) []) = return x
 eval (VMState [] (x : _) ((c', e') : d)) = eval (VMState c' (x : e') d)
@@ -120,7 +125,7 @@ eval (VMState (App pos m n : c) e d) = do
     a <- envAt pos e n
     case f of
         Char w     -> eval (VMState c (eqChar w a : e) d)
-        Prim op    -> op a >>= \x -> eval (VMState c (x : e) d)
+        Prim op    -> withPos pos (op a) >>= \x -> eval (VMState c (x : e) d)
         Clos em cm -> if null c && not (null d)
             then eval (VMState cm (a : em) d)
             else eval (VMState cm (a : em) ((c, e) : d))
@@ -132,7 +137,7 @@ eval _ = throwError $ RuntimeError vmPos "unknown VM state"
 run :: Code -> IO (Either RuntimeError ())
 run code = runExceptT $ do
     let initState = VMState code initEnv initDump
-    _ <-eval initState
+    _ <- eval initState
     return ()
     where
         initEnv  = [primOut, primSucc, charLowerW, primIn]
