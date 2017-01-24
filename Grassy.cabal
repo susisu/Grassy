@@ -13,6 +13,16 @@ build-type:          Simple
 extra-source-files:  README.md
 cabal-version:       >=1.10
 
+executable grass
+  hs-source-dirs:      grass
+  main-is:             Main.hs
+  ghc-options:         -O2 -Wall -threaded -rtsopts -with-rtsopts=-N
+  build-depends:       base
+                     , Grassy
+                     , optparse-applicative
+                     , text
+  default-language:    Haskell2010
+
 library
   hs-source-dirs:      src
   exposed-modules:     Language.Grass
@@ -25,7 +35,7 @@ library
                      , parsec
                      , safe
   default-language:    Haskell2010
-  ghc-options:         -Wall
+  ghc-options:         -O2 -Wall
 
 source-repository head
   type:     git
