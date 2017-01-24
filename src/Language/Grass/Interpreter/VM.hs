@@ -2,8 +2,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 
 module Language.Grass.Interpreter.VM
-    (
-      Pos (..)
+    ( Pos (..)
     , Inst (..)
     , RuntimeError (..)
     , Code

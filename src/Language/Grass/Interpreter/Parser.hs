@@ -2,8 +2,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 
 module Language.Grass.Interpreter.Parser
-    (
-      parse
+    ( parse
     ) where
 
 import Control.Monad.Identity

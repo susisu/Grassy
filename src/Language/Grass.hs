@@ -1,6 +1,5 @@
 module Language.Grass
-    (
-      runGrass
+    ( runGrass
     ) where
 
 import Language.Grass.Interpreter
