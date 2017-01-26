@@ -29,6 +29,9 @@ library
                      , Language.Grass.Interpreter
                      , Language.Grass.Interpreter.VM
                      , Language.Grass.Interpreter.Parser
+                     , Language.Grass.Transpiler
+                     , Language.Grass.Transpiler.Untyped
+                     , Language.Grass.Transpiler.Untyped.Term
   build-depends:       base >= 4.7 && < 5
                      , bytestring
                      , mtl
