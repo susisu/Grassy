@@ -11,7 +11,7 @@ import Text.Parsec.Prim ((<|>), (<?>))
 
 import Language.Grass.Interpreter.VM
 
-type Parser a = forall s. P.Stream s Identity Char => P.ParsecT s () Identity a
+type Parser a = forall s m. P.Stream s m Char => P.ParsecT s () m a
 
 whiteSpace :: Parser ()
 whiteSpace = P.skipMany (P.noneOf "wWv\xFF57\xFF37\xFF56") <?> ""
