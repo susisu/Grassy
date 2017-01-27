@@ -1,6 +1,7 @@
 module Language.Grass.Transpiler.Untyped.Term
     ( Pat (..)
     , Term (..)
+    , Def (..)
     ) where
 
 import Text.Parsec.Pos (SourcePos)
@@ -24,3 +25,8 @@ instance Show Term where
     show (Abs _ pat x)   = "fun " ++ show pat ++ " -> " ++ show x
     show (App _ x y)     = "(" ++ show x ++ ") (" ++ show y ++ ")"
     show (Let _ pat x y) = "let " ++ show pat ++ " = " ++ show x ++ " in " ++ show y
+
+data Def = Def SourcePos Pat Term
+
+instance Show Def where
+    show (Def _ pat x) = "let " ++ show pat ++ " = " ++ show x
