@@ -55,13 +55,13 @@ parens = TP.parens tp
 
 
 -- pattern
-unbind :: Parser Pat
+unbind :: Parser Pattern
 unbind  = symbol "_" *> pure Unbind
 
-bind :: Parser Pat
+bind :: Parser Pattern
 bind    = Bind <$> identifier
 
-pattern :: Parser Pat
+pattern :: Parser Pattern
 pattern = bind <|> unbind
 
 

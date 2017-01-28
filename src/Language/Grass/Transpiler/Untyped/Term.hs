@@ -1,5 +1,5 @@
 module Language.Grass.Transpiler.Untyped.Term
-    ( Pat (..)
+    ( Pattern (..)
     , Term (..)
     , Def (..)
     ) where
@@ -7,18 +7,18 @@ module Language.Grass.Transpiler.Untyped.Term
 import Text.Parsec.Pos (SourcePos)
 
 
-data Pat = Unbind | Bind String
+data Pattern = Unbind | Bind String
     deriving (Eq)
 
-instance Show Pat where
+instance Show Pattern where
     show Unbind      = "_"
     show (Bind name) = name
 
 data Term =
       Var SourcePos String
-    | Abs SourcePos Pat Term
+    | Abs SourcePos Pattern Term
     | App SourcePos Term Term
-    | Let SourcePos Pat Term Term
+    | Let SourcePos Pattern Term Term
 
 instance Show Term where
     show (Var _ name)    = name
@@ -26,7 +26,7 @@ instance Show Term where
     show (App _ x y)     = "(" ++ show x ++ ") (" ++ show y ++ ")"
     show (Let _ pat x y) = "let " ++ show pat ++ " = " ++ show x ++ " in " ++ show y
 
-data Def = Def SourcePos Pat Term
+data Def = Def SourcePos Pattern Term
 
 instance Show Def where
     show (Def _ pat x) = "let " ++ show pat ++ " = " ++ show x
