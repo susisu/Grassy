@@ -33,6 +33,7 @@ library
                      , Language.Grass.Transpiler.Untyped
                      , Language.Grass.Transpiler.Untyped.Term
                      , Language.Grass.Transpiler.Untyped.Parser
+                     , Language.Grass.Transpiler.Untyped.Transformation
   build-depends:       base >= 4.7 && < 5
                      , bytestring
                      , mtl
