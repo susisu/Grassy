@@ -2,11 +2,13 @@ module Language.Grass.Transpiler.Untyped.Term
     ( Pattern (..)
     , Term (..)
     , Def (..)
+    , IxTerm (..)
     ) where
 
 import Text.Parsec.Pos (SourcePos)
 
 
+-- terms
 data Pattern = Unbind | Bind String
     deriving (Eq)
 
@@ -30,3 +32,18 @@ data Def = Def SourcePos Pattern Term
 
 instance Show Def where
     show (Def _ pat x) = "let " ++ show pat ++ " = " ++ show x
+
+
+-- de Bruijn indexed terms
+data IxTerm =
+      IxVar Int
+    | IxAbs IxTerm
+    | IxLet IxTerm IxTerm
+    | IxApp IxTerm IxTerm
+
+instance Show IxTerm where
+    show (IxVar i)   = show i
+    show (IxAbs x)   = "fun -> " ++ show x
+    show (IxApp x y) = "(" ++ show x ++ ") (" ++ show y ++ ")"
+    show (IxLet x y) = "let " ++ show x ++ " in " ++ show y
+
