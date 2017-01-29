@@ -54,18 +54,11 @@ parens :: Parser a -> Parser a
 parens = TP.parens tp
 
 
--- pattern
-unbind :: Parser Pattern
-unbind  = symbol "_" *> pure Unbind
-
-bind :: Parser Pattern
-bind    = Bind <$> identifier
-
-pattern :: Parser Pattern
-pattern = bind <|> unbind
-
-
 -- terms
+pattern :: Parser String
+pattern = identifier <|> (reserved "_" *> pure "_")
+
+
 term :: Parser Term
 term = application <|> abstraction <|> binding <|> parens term
 
@@ -99,17 +92,13 @@ binding :: Parser Term
 binding = flip P.label "binding" $ do
     pos <- P.getPosition
     reserved "let"
-    pat    <- pattern
-    params <- case pat of
-        Bind _ -> P.many pattern
-        Unbind -> return []
+    name   <- pattern
+    params <- P.many pattern
     reservedOp "="
     val <- term
     reserved "in"
     body <- term
-    if null params
-        then return $ Let pos pat val body
-        else return $ Let pos pat (foldr (Abs pos) val params) body
+    return $ Let pos name (foldr (Abs pos) val params) body
 
 
 -- definition
@@ -117,15 +106,11 @@ definition :: Parser Def
 definition = flip P.label "definition" $ do
     pos <- P.getPosition
     reserved "let"
-    pat <- pattern
-    params <- case pat of
-        Bind _ -> P.many pattern
-        Unbind -> return []
+    name   <- pattern
+    params <- P.many pattern
     reservedOp "="
     val <- term
-    if null params
-        then return $ Def pos pat val
-        else return $ Def pos pat (foldr (Abs pos) val params)
+    return $ Def pos name (foldr (Abs pos) val params)
 
 separator :: Parser ()
 separator = P.skipMany $ symbol ";"

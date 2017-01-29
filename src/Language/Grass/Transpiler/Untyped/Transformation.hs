@@ -15,16 +15,16 @@ throwErrorWithPos pos msg = throwError $ "Error at " ++ show pos ++ ":\n" ++ msg
 
 
 -- convert term to de Bruijn indexed term
-toIndexed :: [Pattern] -> Term -> Transf IxTerm
-toIndexed ctx (Var pos name) = case elemIndex (Bind name) ctx of
+toIndexed :: [String] -> Term -> Transf IxTerm
+toIndexed ctx (Var pos name) = case elemIndex name ctx of
     Just i  -> return $ IxVar i
     Nothing -> throwErrorWithPos pos $ "unbound variable `" ++ name ++ "'"
-toIndexed ctx (Abs _ pat x) = do
-    x' <- toIndexed (pat : ctx) x
+toIndexed ctx (Abs _ param x) = do
+    x' <- toIndexed (param : ctx) x
     return $ IxAbs x'
-toIndexed ctx (Let _ pat x y) = do
+toIndexed ctx (Let _ name x y) = do
     x' <- toIndexed ctx x
-    y' <- toIndexed (pat : ctx) y
+    y' <- toIndexed (name : ctx) y
     return $ IxLet x' y'
 toIndexed ctx (App _ x y) = do
     x' <- toIndexed ctx x
