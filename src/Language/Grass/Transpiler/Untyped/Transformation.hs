@@ -32,11 +32,11 @@ toIndexed ctx (Var pos name) = case findIndex ctx name of
 toIndexed ctx (Abs _ param x) = do
     x' <- toIndexed (DefInfo param 1 : ctx) x
     return $ IxAbs x'
-toIndexed ctx (Let _ name x y) = do
-    x' <- toIndexed ctx x
-    y' <- toIndexed (DefInfo name 1 : ctx) y
-    return $ IxLet x' y'
 toIndexed ctx (App _ x y) = do
     x' <- toIndexed ctx x
     y' <- toIndexed ctx y
     return $ IxApp x' y'
+toIndexed ctx (Let _ name x y) = do
+    x' <- toIndexed ctx x
+    y' <- toIndexed (DefInfo name 1 : ctx) y
+    return $ IxLet x' y'
