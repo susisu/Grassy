@@ -32,6 +32,7 @@ data IxTerm =
     | IxAbs IxTerm
     | IxLet IxTerm IxTerm
     | IxApp IxTerm IxTerm
+    deriving (Eq)
 
 instance Show IxTerm where
     show (IxVar i)   = show i
