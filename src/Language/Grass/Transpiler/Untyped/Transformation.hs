@@ -1,9 +1,9 @@
 module Language.Grass.Transpiler.Untyped.Transformation
-    ( toIndexed
+    ( DefInfo (..)
+    , toIndexed
     ) where
 
 import Control.Monad.Except
-import Data.List
 
 import Language.Grass.Transpiler.Untyped.Term
 
@@ -15,16 +15,26 @@ throwErrorWithPos pos msg = throwError $ "Error at " ++ show pos ++ ":\n" ++ msg
 
 
 -- convert term to de Bruijn indexed term
-toIndexed :: [String] -> Term -> Transf IxTerm
-toIndexed ctx (Var pos name) = case elemIndex name ctx of
+data DefInfo = DefInfo String Int
+
+findIndex :: [DefInfo] -> String -> Maybe Int
+findIndex ctx name = walk 0 ctx
+    where
+        walk _ [] = Nothing
+        walk i (DefInfo defName defSize : rest)
+            | name == defName = Just i
+            | otherwise       = walk (i + defSize) rest
+
+toIndexed :: [DefInfo] -> Term -> Transf IxTerm
+toIndexed ctx (Var pos name) = case findIndex ctx name of
     Just i  -> return $ IxVar i
     Nothing -> throwErrorWithPos pos $ "unbound variable `" ++ name ++ "'"
 toIndexed ctx (Abs _ param x) = do
-    x' <- toIndexed (param : ctx) x
+    x' <- toIndexed (DefInfo param 1 : ctx) x
     return $ IxAbs x'
 toIndexed ctx (Let _ name x y) = do
     x' <- toIndexed ctx x
-    y' <- toIndexed (name : ctx) y
+    y' <- toIndexed (DefInfo name 1 : ctx) y
     return $ IxLet x' y'
 toIndexed ctx (App _ x y) = do
     x' <- toIndexed ctx x
