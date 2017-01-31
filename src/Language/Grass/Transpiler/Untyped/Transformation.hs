@@ -3,6 +3,7 @@ module Language.Grass.Transpiler.Untyped.Transformation
     , toIndexed
     , aNormalize
     , elimVars
+    , liftLambdas
     ) where
 
 import Control.Monad.Except
@@ -114,3 +115,56 @@ elimVars x@(IxApp _ _)         = x
 elimVars (IxLet x (IxVar 0))   = x
 elimVars (IxLet x@(IxVar _) y) = elimVars $ shift 0 (-1) (subst 0 (shift 0 1 x) y)
 elimVars (IxLet x y)           = IxLet x (elimVars y)
+
+
+-- lambda-lifting
+liftLambdas' :: Bool -> IxTerm -> IxTerm
+liftLambdas' _ x@(IxVar _) = x
+liftLambdas' _ (IxAbs x) = case liftLambdas' False x of
+    IxLet s@(IxAbs _) t
+        | s `contains` 0 -> IxLet (IxAbs s)
+            (liftLambdas' False $ IxAbs
+                (IxLet (IxApp (IxVar 1) (IxVar 0))
+                    (shift 2 1 t)
+                )
+            )
+        | otherwise -> IxLet (shift 0 (-1) s)
+            (liftLambdas' False $ IxAbs (swap 0 1 t))
+    x' -> IxAbs x'
+liftLambdas' _ x@(IxApp _ _) = x
+liftLambdas' toplevel (IxLet x y) = case liftLambdas' toplevel x of
+    IxLet s t    -> liftLambdas' toplevel $ IxLet s (IxLet t (shift 1 1 y))
+    x'@(IxAbs _) -> if toplevel
+        then IxLet x' (liftLambdas' toplevel y)
+        else case liftLambdas' toplevel y of
+            y'@(IxAbs _) -> liftLambdas' False $ IxLet x'
+                (IxLet y'
+                    (IxLet (IxAbs (IxVar 0))
+                        (IxApp (IxVar 0) (IxVar 1))
+                    )
+                )
+            y' -> IxLet x' y'
+    x' -> if toplevel
+        then IxLet x' (liftLambdas' toplevel y)
+        else case liftLambdas' toplevel y of
+            IxLet u@(IxAbs _) v
+                | u `contains` 0 -> IxLet (IxAbs u)
+                    (liftLambdas' False $ IxLet (shift 0 1 x')
+                        (IxLet (IxApp (IxVar 1) (IxVar 0))
+                            (shift 2 1 v)
+                        )
+                    )
+                | otherwise -> IxLet (shift 0 (-1) u)
+                    (liftLambdas' False $ IxLet (shift 0 1 x')
+                        (swap 0 1 v)
+                    )
+            y'@(IxAbs _) -> liftLambdas' False $ IxLet x'
+                (IxLet y'
+                    (IxLet (IxAbs (IxVar 0))
+                        (IxApp (IxVar 0) (IxVar 1))
+                    )
+                )
+            y' -> IxLet x' y'
+
+liftLambdas :: IxTerm -> IxTerm
+liftLambdas x = liftLambdas' True x
