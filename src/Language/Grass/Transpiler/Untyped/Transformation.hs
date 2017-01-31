@@ -1,7 +1,8 @@
 module Language.Grass.Transpiler.Untyped.Transformation
     ( DefInfo (..)
     , toIndexed
-    , normalize
+    , aNormalize
+    , elimVars
     ) where
 
 import Control.Monad.Except
@@ -42,6 +43,7 @@ toIndexed ctx (Let _ name x y) = do
     y' <- toIndexed (DefInfo name 1 : ctx) y
     return $ IxLet x' y'
 
+
 -- operations on indexed terms
 shift :: Int -> Int -> IxTerm -> IxTerm
 shift i n x@(IxVar j)
@@ -75,7 +77,7 @@ IxApp x y `contains` i = (x `contains` i) || (y `contains` i)
 IxLet x y `contains` i = (x `contains` i) || (y `contains` (i + 1))
 
 
--- A-normalization
+-- A-normalize (+ eliminate applications with abstractions)
 data EvalCtx =
       EmptyCtx
     | LetValCtx IxTerm
@@ -88,21 +90,27 @@ shiftCtx :: Int -> Int -> EvalCtx -> EvalCtx
 shiftCtx _ _ EmptyCtx      = EmptyCtx
 shiftCtx i n (LetValCtx y) = LetValCtx (shift (i + 1) n y)
 
-normalizeWithCtx :: IxTerm -> EvalCtx -> IxTerm
-normalizeWithCtx x@(IxVar _) ctx = applyCtx ctx x
-normalizeWithCtx (IxAbs x)   ctx = applyCtx ctx $ IxAbs (normalize x)
-normalizeWithCtx (IxApp x y) ctx = normalizeWithCtx x ctx1
+aNormalize' :: IxTerm -> EvalCtx -> IxTerm
+aNormalize' x@(IxVar _) ctx = applyCtx ctx x
+aNormalize' (IxAbs x)   ctx = applyCtx ctx $ IxAbs (aNormalize x)
+aNormalize' (IxApp x y) ctx = aNormalize' x ctx1
     where
-        ctx1 = LetValCtx (normalizeWithCtx (shift 0 1 y) ctx2)
+        ctx1 = LetValCtx (aNormalize' (shift 0 1 y) ctx2)
         ctx2 = LetValCtx (applyCtx (shiftCtx 0 2 ctx) $ IxApp (IxVar 1) (IxVar 0))
-normalizeWithCtx (IxLet x y) ctx = normalizeWithCtx x ctx'
+aNormalize' (IxLet x y) ctx = aNormalize' x ctx'
     where
-        ctx' = LetValCtx (normalizeWithCtx y (shiftCtx 0 1 ctx))
+        ctx' = LetValCtx (aNormalize' y (shiftCtx 0 1 ctx))
 
-simplify :: IxTerm -> IxTerm
-simplify (IxLet x@(IxVar _) y) = simplify (shift 0 (-1) $ subst 0 (shift 0 1 x) y)
-simplify (IxLet x y)           = IxLet x (simplify y)
-simplify x                     = x
+aNormalize :: IxTerm -> IxTerm
+aNormalize x = aNormalize' x EmptyCtx
 
-normalize :: IxTerm -> IxTerm
-normalize x = simplify $ normalizeWithCtx x EmptyCtx
+
+-- simplify + eliminate isolated variables but 0
+elimVars :: IxTerm -> IxTerm
+elimVars x@(IxVar 0)           = x
+elimVars x@(IxVar _)           = IxLet (IxAbs (IxVar 0)) (IxApp (IxVar 0) (shift 0 1 x))
+elimVars (IxAbs x)             = IxAbs (elimVars x)
+elimVars x@(IxApp _ _)         = x
+elimVars (IxLet x (IxVar 0))   = x
+elimVars (IxLet x@(IxVar _) y) = elimVars $ shift 0 (-1) (subst 0 (shift 0 1 x) y)
+elimVars (IxLet x y)           = IxLet x (elimVars y)
