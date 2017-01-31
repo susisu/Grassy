@@ -4,6 +4,7 @@ module Language.Grass.Transpiler.Untyped.Transformation
     , aNormalize
     , elimVars
     , liftLambdas
+    , normalize
     ) where
 
 import Control.Monad.Except
@@ -172,3 +173,8 @@ liftLambdas (IxLet x y) = case liftLambdas x of
     x'@(IxAbs _) -> IxLet x' (liftLambdas y)
     x'           -> IxLet x' (liftLambdas y)
 liftLambdas x = liftLambdas' x
+
+
+-- full normalization
+normalize :: IxTerm -> IxTerm
+normalize = liftLambdas . elimVars . aNormalize
