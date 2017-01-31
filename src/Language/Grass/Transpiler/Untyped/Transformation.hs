@@ -86,7 +86,7 @@ elimVars' (IxAbs x)             = IxAbs (elimVars' x)
 elimVars' x@(IxApp _ _)         = x
 elimVars' (IxLet x (IxVar 0))   = x
 elimVars' (IxLet x@(IxVar _) y) = elimVars' $ shift 0 (-1) (subst 0 (shift 0 1 x) y)
-elimVars' (IxLet x y)           = IxLet x (elimVars' y)
+elimVars' (IxLet x y)           = IxLet (elimVars' x) (elimVars' y)
 
 elimVars :: IxTerm -> IxTerm
 elimVars x@(IxVar _) = IxLet (IxAbs (IxVar 0)) (IxApp (IxVar 0) (shift 0 1 x))
