@@ -1,10 +1,9 @@
 module Language.Grass.Transpiler.Untyped.Transformation
     ( DefInfo (..)
-    , toIndexed
-    , aNormalize
-    , elimVars
-    , liftLambdas
-    , normalize
+    , CharSet (..)
+    , defaultCharSet
+    , wideCharSet
+    , plant
     ) where
 
 import Control.Monad.Except
@@ -196,3 +195,32 @@ transfDefs ctx (def : defs) = do
     (info, xs) <- transfDef ctx def
     rest       <- transfDefs (info : ctx) defs
     return $ xs ++ rest
+
+
+-- planting
+data CharSet = CharSet { lowerW :: Char , upperW :: Char , lowerV :: Char }
+
+defaultCharSet :: CharSet
+defaultCharSet = CharSet { lowerW = 'w', upperW = 'W', lowerV = 'v' }
+
+wideCharSet :: CharSet
+wideCharSet = CharSet { lowerW = '\xFF57', upperW = '\xFF37', lowerV = '\xFF56' }
+
+plantTerm :: CharSet -> IxTerm -> Transf String
+plantTerm _ (IxVar _)                    = throwError "unexpected form"
+plantTerm cs (IxAbs (IxVar 0))           = return $ [lowerW cs]
+plantTerm cs (IxAbs x)                   = (lowerW cs :) <$> plantTerms cs (serialize x)
+plantTerm cs (IxApp (IxVar i) (IxVar j)) = return $ replicate (i + 1) (upperW cs) ++ replicate (j + 1) (lowerW cs)
+plantTerm _ (IxApp _ _)                  = throwError "unexpected form"
+plantTerm _ (IxLet _ _)                  = throwError "unexpected form"
+
+plantTerms :: CharSet -> [IxTerm] -> Transf String
+plantTerms _ []                                   = return ""
+plantTerms cs (x@(IxApp _ _) : xs@(IxApp _ _ : _)) = (++) <$> plantTerm cs x <*> plantTerms cs xs
+plantTerms cs (x : [])                             = plantTerm cs x
+plantTerms cs (x : xs)                             = appendSep <$> plantTerm cs x <*> plantTerms cs xs
+    where
+        appendSep s t = s ++ lowerV cs : t
+
+plant :: [DefInfo] -> [Def] -> CharSet -> Either String String
+plant ctx defs cs = runExcept $ transfDefs ctx defs >>= plantTerms cs
