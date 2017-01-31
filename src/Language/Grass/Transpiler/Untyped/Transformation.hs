@@ -18,34 +18,6 @@ throwErrorWithPos :: Show p => p -> String -> Transf a
 throwErrorWithPos pos msg = throwError $ "Error at " ++ show pos ++ ":\n" ++ msg
 
 
--- convert term to de Bruijn indexed term
-data DefInfo = DefInfo String Int
-
-findIndex :: [DefInfo] -> String -> Maybe Int
-findIndex ctx name = walk 0 ctx
-    where
-        walk _ [] = Nothing
-        walk i (DefInfo defName defSize : rest)
-            | name == defName = Just i
-            | otherwise       = walk (i + defSize) rest
-
-toIndexed :: [DefInfo] -> Term -> Transf IxTerm
-toIndexed ctx (Var pos name) = case findIndex ctx name of
-    Just i  -> return $ IxVar i
-    Nothing -> throwErrorWithPos pos $ "unbound variable `" ++ name ++ "'"
-toIndexed ctx (Abs _ param x) = do
-    x' <- toIndexed (DefInfo param 1 : ctx) x
-    return $ IxAbs x'
-toIndexed ctx (App _ x y) = do
-    x' <- toIndexed ctx x
-    y' <- toIndexed ctx y
-    return $ IxApp x' y'
-toIndexed ctx (Let _ name x y) = do
-    x' <- toIndexed ctx x
-    y' <- toIndexed (DefInfo name 1 : ctx) y
-    return $ IxLet x' y'
-
-
 -- operations on indexed terms
 shift :: Int -> Int -> IxTerm -> IxTerm
 shift i n x@(IxVar j)
@@ -178,3 +150,49 @@ liftLambdas x = liftLambdas' x
 -- full normalization
 normalize :: IxTerm -> IxTerm
 normalize = liftLambdas . elimVars . aNormalize
+
+
+-- transform definitions
+data DefInfo = DefInfo String Int
+
+findIndex :: [DefInfo] -> String -> Maybe Int
+findIndex ctx name = walk 0 ctx
+    where
+        walk _ [] = Nothing
+        walk i (DefInfo defName defSize : rest)
+            | name == defName = Just i
+            | otherwise       = walk (i + defSize) rest
+
+toIndexed :: [DefInfo] -> Term -> Transf IxTerm
+toIndexed ctx (Var pos name) = case findIndex ctx name of
+    Just i  -> return $ IxVar i
+    Nothing -> throwErrorWithPos pos $ "unbound variable `" ++ name ++ "'"
+toIndexed ctx (Abs _ param x) = do
+    x' <- toIndexed (DefInfo param 1 : ctx) x
+    return $ IxAbs x'
+toIndexed ctx (App _ x y) = do
+    x' <- toIndexed ctx x
+    y' <- toIndexed ctx y
+    return $ IxApp x' y'
+toIndexed ctx (Let _ name x y) = do
+    x' <- toIndexed ctx x
+    y' <- toIndexed (DefInfo name 1 : ctx) y
+    return $ IxLet x' y'
+
+serialize :: IxTerm -> [IxTerm]
+serialize (IxLet x y) = x : serialize y
+serialize x           = [x]
+
+transfDef :: [DefInfo] -> Def -> Transf (DefInfo, [IxTerm])
+transfDef ctx (Def _ name term) = do
+    x <- toIndexed ctx term
+    let xs   = serialize $ normalize x
+    let size = length xs
+    return (DefInfo name size, xs)
+
+transfDefs :: [DefInfo] -> [Def] -> Transf [IxTerm]
+transfDefs _ []             = return []
+transfDefs ctx (def : defs) = do
+    (info, xs) <- transfDef ctx def
+    rest       <- transfDefs (info : ctx) defs
+    return $ xs ++ rest
