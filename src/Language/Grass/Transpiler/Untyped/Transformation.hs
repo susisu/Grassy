@@ -1,6 +1,7 @@
 module Language.Grass.Transpiler.Untyped.Transformation
     ( DefInfo (..)
     , toIndexed
+    , normalize
     ) where
 
 import Control.Monad.Except
@@ -72,3 +73,36 @@ IxVar j   `contains` i = i == j
 IxAbs x   `contains` i = x `contains` (i + 1)
 IxApp x y `contains` i = (x `contains` i) || (y `contains` i)
 IxLet x y `contains` i = (x `contains` i) || (y `contains` (i + 1))
+
+
+-- A-normalization
+data EvalCtx =
+      EmptyCtx
+    | LetValCtx IxTerm
+
+applyCtx :: EvalCtx -> IxTerm -> IxTerm
+applyCtx EmptyCtx x      = x
+applyCtx (LetValCtx y) x = IxLet x y
+
+shiftCtx :: Int -> Int -> EvalCtx -> EvalCtx
+shiftCtx _ _ EmptyCtx      = EmptyCtx
+shiftCtx i n (LetValCtx y) = LetValCtx (shift (i + 1) n y)
+
+normalizeWithCtx :: IxTerm -> EvalCtx -> IxTerm
+normalizeWithCtx x@(IxVar _) ctx = applyCtx ctx x
+normalizeWithCtx (IxAbs x)   ctx = applyCtx ctx $ IxAbs (normalize x)
+normalizeWithCtx (IxApp x y) ctx = normalizeWithCtx x ctx1
+    where
+        ctx1 = LetValCtx (normalizeWithCtx (shift 0 1 y) ctx2)
+        ctx2 = LetValCtx (applyCtx (shiftCtx 0 2 ctx) $ IxApp (IxVar 1) (IxVar 0))
+normalizeWithCtx (IxLet x y) ctx = normalizeWithCtx x ctx'
+    where
+        ctx' = LetValCtx (normalizeWithCtx y (shiftCtx 0 1 ctx))
+
+simplify :: IxTerm -> IxTerm
+simplify (IxLet x@(IxVar _) y) = simplify (shift 0 (-1) $ subst 0 (shift 0 1 x) y)
+simplify (IxLet x y)           = IxLet x (simplify y)
+simplify x                     = x
+
+normalize :: IxTerm -> IxTerm
+normalize x = simplify $ normalizeWithCtx x EmptyCtx

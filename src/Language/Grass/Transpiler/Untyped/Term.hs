@@ -30,8 +30,8 @@ instance Show Def where
 data IxTerm =
       IxVar Int
     | IxAbs IxTerm
-    | IxLet IxTerm IxTerm
     | IxApp IxTerm IxTerm
+    | IxLet IxTerm IxTerm
     deriving (Eq)
 
 instance Show IxTerm where
@@ -39,4 +39,3 @@ instance Show IxTerm where
     show (IxAbs x)   = "fun -> " ++ show x
     show (IxApp x y) = "(" ++ show x ++ ") (" ++ show y ++ ")"
     show (IxLet x y) = "let " ++ show x ++ " in " ++ show y
-
