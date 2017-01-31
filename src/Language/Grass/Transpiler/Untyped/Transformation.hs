@@ -118,53 +118,53 @@ elimVars (IxLet x y)           = IxLet x (elimVars y)
 
 
 -- lambda-lifting
-liftLambdas' :: Bool -> IxTerm -> IxTerm
-liftLambdas' _ x@(IxVar _) = x
-liftLambdas' _ (IxAbs x) = case liftLambdas' False x of
+liftLambdas' :: IxTerm -> IxTerm
+liftLambdas' x@(IxVar _) = x
+liftLambdas' (IxAbs x) = case liftLambdas' x of
     IxLet s@(IxAbs _) t
         | s `contains` 0 -> IxLet (IxAbs s)
-            (liftLambdas' False $ IxAbs
+            (liftLambdas' $ IxAbs
                 (IxLet (IxApp (IxVar 1) (IxVar 0))
                     (shift 2 1 t)
                 )
             )
         | otherwise -> IxLet (shift 0 (-1) s)
-            (liftLambdas' False $ IxAbs (swap 0 1 t))
+            (liftLambdas' $ IxAbs (swap 0 1 t))
     x' -> IxAbs x'
-liftLambdas' _ x@(IxApp _ _) = x
-liftLambdas' toplevel (IxLet x y) = case liftLambdas' toplevel x of
-    IxLet s t    -> liftLambdas' toplevel $ IxLet s (IxLet t (shift 1 1 y))
-    x'@(IxAbs _) -> if toplevel
-        then IxLet x' (liftLambdas' toplevel y)
-        else case liftLambdas' toplevel y of
-            y'@(IxAbs _) -> liftLambdas' False $ IxLet x'
-                (IxLet y'
-                    (IxLet (IxAbs (IxVar 0))
-                        (IxApp (IxVar 0) (IxVar 1))
+liftLambdas' x@(IxApp _ _) = x
+liftLambdas' (IxLet x y) = case liftLambdas' x of
+    IxLet s t    -> liftLambdas' $ IxLet s (IxLet t (shift 1 1 y))
+    x'@(IxAbs _) -> case liftLambdas' y of
+        y'@(IxAbs _) -> liftLambdas' $ IxLet x'
+            (IxLet y'
+                (IxLet (IxAbs (IxVar 0))
+                    (IxApp (IxVar 0) (IxVar 1))
+                )
+            )
+        y' -> IxLet x' y'
+    x' -> case liftLambdas' y of
+        IxLet u@(IxAbs _) v
+            | u `contains` 0 -> IxLet (IxAbs u)
+                (liftLambdas' $ IxLet (shift 0 1 x')
+                    (IxLet (IxApp (IxVar 1) (IxVar 0))
+                        (shift 2 1 v)
                     )
                 )
-            y' -> IxLet x' y'
-    x' -> if toplevel
-        then IxLet x' (liftLambdas' toplevel y)
-        else case liftLambdas' toplevel y of
-            IxLet u@(IxAbs _) v
-                | u `contains` 0 -> IxLet (IxAbs u)
-                    (liftLambdas' False $ IxLet (shift 0 1 x')
-                        (IxLet (IxApp (IxVar 1) (IxVar 0))
-                            (shift 2 1 v)
-                        )
-                    )
-                | otherwise -> IxLet (shift 0 (-1) u)
-                    (liftLambdas' False $ IxLet (shift 0 1 x')
-                        (swap 0 1 v)
-                    )
-            y'@(IxAbs _) -> liftLambdas' False $ IxLet x'
-                (IxLet y'
-                    (IxLet (IxAbs (IxVar 0))
-                        (IxApp (IxVar 0) (IxVar 1))
-                    )
+            | otherwise -> IxLet (shift 0 (-1) u)
+                (liftLambdas' $ IxLet (shift 0 1 x')
+                    (swap 0 1 v)
                 )
-            y' -> IxLet x' y'
+        y'@(IxAbs _) -> liftLambdas' $ IxLet x'
+            (IxLet y'
+                (IxLet (IxAbs (IxVar 0))
+                    (IxApp (IxVar 0) (IxVar 1))
+                )
+            )
+        y' -> IxLet x' y'
 
 liftLambdas :: IxTerm -> IxTerm
-liftLambdas x = liftLambdas' True x
+liftLambdas (IxLet x y) = case liftLambdas x of
+    IxLet s t    -> liftLambdas $ IxLet s (IxLet t (shift 1 1 y))
+    x'@(IxAbs _) -> IxLet x' (liftLambdas y)
+    x'           -> IxLet x' (liftLambdas y)
+liftLambdas x = liftLambdas' x
