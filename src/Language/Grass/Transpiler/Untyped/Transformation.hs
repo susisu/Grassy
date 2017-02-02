@@ -1,8 +1,20 @@
 module Language.Grass.Transpiler.Untyped.Transformation
-    ( DefInfo (..)
+    ( Transf
+    , shift
+    , subst
+    , swap
+    , contains
+    , aNormalize
+    , elimVars
+    , liftLambdas
+    , normalize
+    , DefInfo (..)
+    , transfDef
+    , transfDefs
     , CharSet (..)
     , defaultCharSet
     , wideCharSet
+    , plantDefs
     , plant
     ) where
 
@@ -182,19 +194,18 @@ serialize :: IxTerm -> [IxTerm]
 serialize (IxLet x y) = x : serialize y
 serialize x           = [x]
 
-transfDef :: [DefInfo] -> Def -> Transf (DefInfo, [IxTerm])
-transfDef ctx (Def _ name term) = do
+transfDef :: [DefInfo] -> Def -> (IxTerm -> IxTerm) -> Transf (DefInfo, [IxTerm])
+transfDef ctx (Def _ name term) opt = do
     x <- toIndexed ctx term
-    let xs   = serialize $ normalize x
+    let xs   = serialize $ opt $ normalize x
     let size = length xs
     return (DefInfo name size, xs)
 
-transfDefs :: [DefInfo] -> [Def] -> Transf [IxTerm]
-transfDefs _ []             = return []
-transfDefs ctx (def : defs) = do
-    (info, xs) <- transfDef ctx def
-    rest       <- transfDefs (info : ctx) defs
-    return $ xs ++ rest
+transfDefs :: [DefInfo] -> [Def] -> (IxTerm -> IxTerm) -> Transf [IxTerm]
+transfDefs _ [] _ = return []
+transfDefs ctx (def : defs) opt = do
+    (info, xs) <- transfDef ctx def opt
+    (xs ++) <$> transfDefs (info : ctx) defs opt
 
 
 -- planting
@@ -207,12 +218,12 @@ wideCharSet :: CharSet
 wideCharSet = CharSet { lowerW = '\xFF57', upperW = '\xFF37', lowerV = '\xFF56' }
 
 plantTerm :: CharSet -> IxTerm -> Transf String
-plantTerm _ (IxVar _)                    = throwError "unexpected form"
+plantTerm _ (IxVar _)                    = throwError "unexpected variable"
 plantTerm cs (IxAbs (IxVar 0))           = return $ [lowerW cs]
 plantTerm cs (IxAbs x)                   = (lowerW cs :) <$> plantTerms cs (serialize x)
 plantTerm cs (IxApp (IxVar i) (IxVar j)) = return $ replicate (i + 1) (upperW cs) ++ replicate (j + 1) (lowerW cs)
-plantTerm _ (IxApp _ _)                  = throwError "unexpected form"
-plantTerm _ (IxLet _ _)                  = throwError "unexpected form"
+plantTerm _ (IxApp _ _)                  = throwError "unexpected application form"
+plantTerm _ (IxLet _ _)                  = throwError "unexpected binding"
 
 plantTerms :: CharSet -> [IxTerm] -> Transf String
 plantTerms _ []                                   = return ""
@@ -222,5 +233,8 @@ plantTerms cs (x : xs)                             = appendSep <$> plantTerm cs 
     where
         appendSep s t = s ++ lowerV cs : t
 
-plant :: [DefInfo] -> [Def] -> CharSet -> Either String String
-plant ctx defs cs = runExcept $ transfDefs ctx defs >>= plantTerms cs
+plantDefs :: [DefInfo] -> [Def] -> (IxTerm -> IxTerm) -> CharSet -> Transf String
+plantDefs ctx defs opt cs = transfDefs ctx defs opt >>= plantTerms cs
+
+plant :: [DefInfo] -> [Def] -> (IxTerm -> IxTerm) -> CharSet -> Either String String
+plant ctx defs opt cs = runExcept $ plantDefs ctx defs opt cs
