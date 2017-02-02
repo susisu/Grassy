@@ -29,7 +29,6 @@ library
                      , Language.Grass.Interpreter
                      , Language.Grass.Interpreter.VM
                      , Language.Grass.Interpreter.Parser
-                     , Language.Grass.Transpiler
                      , Language.Grass.Transpiler.Untyped
                      , Language.Grass.Transpiler.Untyped.Term
                      , Language.Grass.Transpiler.Untyped.Parser
