@@ -2,6 +2,10 @@
 
 module Language.Grass.Transpiler.Untyped
     ( transpile
+    , DefInfo (..)
+    , CharSet (CharSet)
+    , defaultCharSet
+    , wideCharSet
     ) where
 
 import Control.Monad.Identity
