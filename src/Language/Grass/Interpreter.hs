@@ -1,9 +1,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 
 module Language.Grass.Interpreter
-    ( module Language.Grass.Interpreter.VM
-    , module Language.Grass.Interpreter.Parser
-    , runGrass
+    ( runGrass
     ) where
 
 import Control.Monad.Identity
