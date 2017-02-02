@@ -25,8 +25,7 @@ executable grass
 
 library
   hs-source-dirs:      src
-  exposed-modules:     Language.Grass
-                     , Language.Grass.Interpreter
+  exposed-modules:     Language.Grass.Interpreter
                      , Language.Grass.Interpreter.VM
                      , Language.Grass.Interpreter.Parser
                      , Language.Grass.Transpiler.Untyped
