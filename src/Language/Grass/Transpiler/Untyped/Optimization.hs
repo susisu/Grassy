@@ -1,11 +1,23 @@
 module Language.Grass.Transpiler.Untyped.Optimization
-    ( elimUnused
+    ( Optimizer (..)
+    , noOpt
+    , elimUnused
     , elimDuplicate
     ) where
 
 import Data.List
 
 import Language.Grass.Transpiler.Untyped.Term
+
+
+data Optimizer = Optimizer {
+          globalOpt :: IxTerm -> IxTerm
+        , localOpt :: IxTerm -> IxTerm
+        }
+
+noOpt :: Optimizer
+noOpt = Optimizer { globalOpt = id, localOpt = id }
+
 
 elimUnused :: IxTerm -> IxTerm
 elimUnused x = walk x id
