@@ -10,10 +10,9 @@ import Data.List
 import Language.Grass.Transpiler.Untyped.Term
 
 
-data Optimizer = Optimizer {
-          globalOpt :: IxTerm -> IxTerm
-        , localOpt :: IxTerm -> IxTerm
-        }
+data Optimizer = Optimizer { globalOpt :: IxTerm -> IxTerm
+                           , localOpt :: IxTerm -> IxTerm
+                           }
 
 noOpt :: Optimizer
 noOpt = Optimizer { globalOpt = id, localOpt = id }

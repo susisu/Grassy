@@ -185,7 +185,10 @@ transfDefs ctx defs opt = globalOpt opt <$> walk ctx defs
 
 
 -- planting
-data CharSet = CharSet { lowerW :: Char , upperW :: Char , lowerV :: Char }
+data CharSet = CharSet { lowerW :: Char
+                       , upperW :: Char
+                       , lowerV :: Char
+                       }
 
 defaultCharSet :: CharSet
 defaultCharSet = CharSet { lowerW = 'w', upperW = 'W', lowerV = 'v' }
