@@ -10,6 +10,7 @@ module Language.Grass.Transpiler.Untyped.Transformation
     , CharSet (..)
     , defaultCharSet
     , wideCharSet
+    , plantTerm
     , plantDefs
     , plant
     ) where
@@ -17,6 +18,7 @@ module Language.Grass.Transpiler.Untyped.Transformation
 import Control.Monad.Except
 
 import Language.Grass.Transpiler.Untyped.Term
+import Language.Grass.Transpiler.Untyped.Optimization
 
 
 type Transf a = Except String a
@@ -153,22 +155,33 @@ toIndexed ctx (Let _ name x y) = do
     y' <- toIndexed (DefInfo name 1 : ctx) y
     return $ IxLet x' y'
 
-serialize :: IxTerm -> [IxTerm]
-serialize (IxLet x y) = x : serialize y
-serialize x           = [x]
+height :: IxTerm -> Int
+height x = walk 1 x
+    where
+        walk n (IxLet _ y) = walk (n + 1) y
+        walk n _           = n
 
-transfDef :: [DefInfo] -> Def -> (IxTerm -> IxTerm) -> Transf (DefInfo, [IxTerm])
+glue :: IxTerm -> IxTerm -> IxTerm
+glue (IxLet x y) z = IxLet x (glue y z)
+glue x z           = IxLet x z
+
+transfDef :: [DefInfo] -> Def -> Optimizer -> Transf (DefInfo, IxTerm)
 transfDef ctx (Def _ name term) opt = do
     x <- toIndexed ctx term
-    let xs   = serialize $ opt $ normalize x
-    let size = length xs
-    return (DefInfo name size, xs)
+    let x'   = localOpt opt $ normalize x
+    let size = height x'
+    return (DefInfo name size, x')
 
-transfDefs :: [DefInfo] -> [Def] -> (IxTerm -> IxTerm) -> Transf [IxTerm]
-transfDefs _ [] _ = return []
-transfDefs ctx (def : defs) opt = do
-    (info, xs) <- transfDef ctx def opt
-    (xs ++) <$> transfDefs (info : ctx) defs opt
+transfDefs :: [DefInfo] -> [Def] -> Optimizer -> Transf IxTerm
+transfDefs ctx defs opt = globalOpt opt <$> walk ctx defs
+    where
+        walk _ [] = throwError "no definitions"
+        walk cs (d : []) = do
+            (_, x) <- transfDef cs d opt
+            return x
+        walk cs (d : ds) = do
+            (c, x) <- transfDef cs d opt
+            glue x <$> walk (c : cs) ds
 
 
 -- planting
@@ -180,24 +193,22 @@ defaultCharSet = CharSet { lowerW = 'w', upperW = 'W', lowerV = 'v' }
 wideCharSet :: CharSet
 wideCharSet = CharSet { lowerW = '\xFF57', upperW = '\xFF37', lowerV = '\xFF56' }
 
+plantTerm' :: CharSet -> IxTerm -> Transf String
+plantTerm'  _ (IxVar _)                   = throwError "unexpected variable"
+plantTerm' cs (IxAbs (IxVar 0))           = return $ [lowerW cs]
+plantTerm' cs (IxAbs x)                   = (lowerW cs :) <$> plantTerm cs x
+plantTerm' cs (IxApp (IxVar i) (IxVar j)) = return $ replicate (i + 1) (upperW cs) ++ replicate (j + 1) (lowerW cs)
+plantTerm'  _ (IxApp _ _)                 = throwError "unexpected application form"
+plantTerm'  _ (IxLet _ _)                 = throwError "unexpected binding"
+
 plantTerm :: CharSet -> IxTerm -> Transf String
-plantTerm _ (IxVar _)                    = throwError "unexpected variable"
-plantTerm cs (IxAbs (IxVar 0))           = return $ [lowerW cs]
-plantTerm cs (IxAbs x)                   = (lowerW cs :) <$> plantTerms cs (serialize x)
-plantTerm cs (IxApp (IxVar i) (IxVar j)) = return $ replicate (i + 1) (upperW cs) ++ replicate (j + 1) (lowerW cs)
-plantTerm _ (IxApp _ _)                  = throwError "unexpected application form"
-plantTerm _ (IxLet _ _)                  = throwError "unexpected binding"
+plantTerm cs (IxLet x@(IxApp _ _) y@(IxApp _ _))           = (++) <$> plantTerm' cs x <*> plantTerm' cs y
+plantTerm cs (IxLet x@(IxApp _ _) y@(IxLet (IxApp _ _) _)) = (++) <$> plantTerm' cs x <*> plantTerm cs y
+plantTerm cs (IxLet x y)                                   = (\s t -> s ++ lowerV cs : t) <$> plantTerm' cs x <*> plantTerm cs y
+plantTerm cs x                                             = plantTerm' cs x
 
-plantTerms :: CharSet -> [IxTerm] -> Transf String
-plantTerms _ []                                   = return ""
-plantTerms cs (x@(IxApp _ _) : xs@(IxApp _ _ : _)) = (++) <$> plantTerm cs x <*> plantTerms cs xs
-plantTerms cs (x : [])                             = plantTerm cs x
-plantTerms cs (x : xs)                             = appendSep <$> plantTerm cs x <*> plantTerms cs xs
-    where
-        appendSep s t = s ++ lowerV cs : t
+plantDefs :: [DefInfo] -> [Def] -> Optimizer -> CharSet -> Transf String
+plantDefs ctx defs opt cs = transfDefs ctx defs opt >>= plantTerm cs
 
-plantDefs :: [DefInfo] -> [Def] -> (IxTerm -> IxTerm) -> CharSet -> Transf String
-plantDefs ctx defs opt cs = transfDefs ctx defs opt >>= plantTerms cs
-
-plant :: [DefInfo] -> [Def] -> (IxTerm -> IxTerm) -> CharSet -> Either String String
+plant :: [DefInfo] -> [Def] -> Optimizer -> CharSet -> Either String String
 plant ctx defs opt cs = runExcept $ plantDefs ctx defs opt cs

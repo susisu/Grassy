@@ -3,6 +3,10 @@
 module Language.Grass.Transpiler.Untyped
     ( transpile
     , DefInfo (..)
+    , Optimizer (..)
+    , noOpt
+    , elimUnused
+    , elimDuplicate
     , CharSet (CharSet)
     , defaultCharSet
     , wideCharSet
@@ -11,15 +15,15 @@ module Language.Grass.Transpiler.Untyped
 import Control.Monad.Identity
 import qualified Text.Parsec as P
 
-import Language.Grass.Transpiler.Untyped.Term
 import Language.Grass.Transpiler.Untyped.Parser
+import Language.Grass.Transpiler.Untyped.Optimization
 import Language.Grass.Transpiler.Untyped.Transformation
 
 transpile :: P.Stream s Identity Char =>
        String
     -> s
     -> [DefInfo]
-    -> (IxTerm -> IxTerm)
+    -> Optimizer
     -> CharSet
     -> Either String String
 transpile name src ctx opt cs = case parse name src of
