@@ -8,13 +8,18 @@ import Data.List
 import Language.Grass.Transpiler.Untyped.Term
 
 elimUnused :: IxTerm -> IxTerm
-elimUnused (IxLet x@(IxVar _) y)
-    | y `contains` 0 = IxLet x (elimUnused y)
-    | otherwise      = shift 0 (-1) y
-elimUnused (IxLet x@(IxAbs _) y)
-    | y `contains` 0 = IxLet x (elimUnused y)
-    | otherwise      = shift 0 (-1) y
-elimUnused x = x
+elimUnused x = walk x id
+    where
+        walk (IxLet u@(IxVar _) v) k = walk v $ \v' ->
+            if v' `contains` 0
+                then k (IxLet u v')
+                else k (shift 0 (-1) v')
+        walk (IxLet u@(IxAbs _) v) k = walk v $ \v' ->
+            if v' `contains` 0
+                then k (IxLet u v')
+                else k (shift 0 (-1) v')
+        walk (IxLet u v) k = walk v $ \v' -> k (IxLet u v')
+        walk u k = k u
 
 elimDuplicate :: IxTerm -> IxTerm
 elimDuplicate x = walk [] x
