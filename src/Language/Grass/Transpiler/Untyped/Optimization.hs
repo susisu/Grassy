@@ -40,5 +40,5 @@ elimDuplicate x = walk [] x
         walk ctx (IxLet u@(IxAbs _) v) = case elemIndex u ctx of
             Just i  -> walk ctx $ shift 0 (-1) (subst 0 (IxVar (i + 1)) v)
             Nothing -> IxLet u (walk (map (shift 0 1) $ u : ctx) v)
-        walk ctx (IxLet u v) = IxLet u (walk (map (shift 0 1) ctx) v)
+        walk ctx (IxLet u v) = IxLet u (walk (map (shift 0 1) $ IxVar (-1) : ctx) v) -- IxVar (-1) is dummy
         walk _ u = u
