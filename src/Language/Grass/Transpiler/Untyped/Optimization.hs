@@ -6,7 +6,6 @@ module Language.Grass.Transpiler.Untyped.Optimization
 import Data.List
 
 import Language.Grass.Transpiler.Untyped.Term
-import Language.Grass.Transpiler.Untyped.Transformation (shift, subst, contains)
 
 elimUnused :: IxTerm -> IxTerm
 elimUnused (IxLet x@(IxVar _) y)
