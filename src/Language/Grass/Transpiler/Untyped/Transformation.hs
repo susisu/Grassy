@@ -211,7 +211,14 @@ plantTerm cs (IxLet x y)                                   = (\s t -> s ++ lower
 plantTerm cs x                                             = plantTerm' cs x
 
 plantDefs :: [DefInfo] -> [Def] -> Optimizer -> CharSet -> Transf String
-plantDefs ctx defs opt cs = transfDefs ctx defs opt >>= plantTerm cs
+plantDefs ctx defs opt cs = do
+    term <- transfDefs ctx defs opt
+    case term of
+        IxApp _ _           -> plantTerm cs (prefix term)
+        IxLet (IxApp _ _) _ -> plantTerm cs (prefix term)
+        _                   -> plantTerm cs term
+    where
+        prefix term = IxLet (IxAbs (IxVar 0)) (shift 0 1 term)
 
 plant :: [DefInfo] -> [Def] -> Optimizer -> CharSet -> Either String String
 plant ctx defs opt cs = runExcept $ plantDefs ctx defs opt cs
