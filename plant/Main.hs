@@ -6,8 +6,7 @@ import System.Exit
 
 import qualified Language.Grass.Transpiler.Untyped as G
 
-data Options = Options { optVersion  :: Bool
-                       , optOptimize :: Bool
+data Options = Options { optOptimize :: Bool
                        , optWide     :: Bool
                        , optWidth    :: (Maybe Int)
                        , optOutput   :: (Maybe FilePath)
@@ -15,54 +14,49 @@ data Options = Options { optVersion  :: Bool
                        }
 
 parserInfo :: ParserInfo Options
-parserInfo = info (helper <*> optionsp) $
+parserInfo = info (helper <*> version <*> options) $
            fullDesc
         <> header "plant - Untyped lambda calculus to Grass transpiler"
     where
-        versionP = switch $
+        version = infoOption "0.0.0.0" $
                short 'v'
             <> long "version"
             <> help "Show the version number"
-        optimizeP = switch $
+            <> hidden
+        optimize = switch $
                short 'O'
             <> long "optimize"
             <> help "Optimize generated code"
-        wideP = switch $
+        wide = switch $
                short 'W'
             <> long "wide"
             <> help "Use wide (full-width) characters"
-        widthP = optional . option auto $
+        width = optional . option auto $
                short 'w'
             <> long "width"
             <> metavar "INT"
             <> help "Limit maximum number of characters per line to INT"
-        outputP = optional . strOption $
+        output = optional . strOption $
                short 'o'
             <> long "output"
             <> metavar "OUTFILE"
             <> help "Write output to OUTFILE"
-        inputP = strArgument $
+        input = strArgument $
                metavar "INFILE"
             <> help "Read source from INFILE"
-        optionsp = Options <$> versionP
-                           <*> optimizeP
-                           <*> wideP
-                           <*> widthP
-                           <*> outputP
-                           <*> inputP
-
-parserPrefs :: ParserPrefs
-parserPrefs = defaultPrefs { prefShowHelpOnError = True }
+        options = Options <$> optimize
+                          <*> wide
+                          <*> width
+                          <*> output
+                          <*> input
 
 parseOptions :: IO Options
-parseOptions = customExecParser parserPrefs parserInfo
+parseOptions = execParser parserInfo
 
 
-showVersion :: IO ()
-showVersion = putStrLn "0.0.0.0"
-
-transpile :: Options -> IO ()
-transpile opts = do
+main :: IO ()
+main = do
+    opts <- parseOptions
     let input = optInput opts
         opt = if optOptimize opts
             then fullOpt
@@ -95,10 +89,3 @@ transpile opts = do
         shape width code = case drop width code of
             ""   ->  take width code
             rest -> take width code ++ '\n' : shape width rest
-
-main :: IO ()
-main = do
-    opts <- parseOptions
-    if optVersion opts
-        then showVersion
-        else transpile opts

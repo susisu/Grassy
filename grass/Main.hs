@@ -8,48 +8,35 @@ import System.Exit
 import Language.Grass.Interpreter (runGrass)
 
 
-data Options = Options { optVersion :: Bool
-                       , optEval    :: (Maybe String)
-                       , optFile    :: (Maybe FilePath)
-                       }
+data Options   = Options { optInput :: InputType }
+data InputType = Eval String
+               | File FilePath
 
 parserInfo :: ParserInfo Options
-parserInfo = info (helper <*> optionsp) $
+parserInfo = info (helper <*> version <*> optionsP) $
            fullDesc
         <> header "grass - Grass interpreter"
     where
-        versionP = switch $
+        version = infoOption "0.0.0.0" $
                short 'v'
             <> long "version"
             <> help "Show the version number"
-        evalP = optional . strOption $
+            <> hidden
+        eval = Eval <$> strOption (
                short 'e'
             <> long "eval"
             <> metavar "PROGRAM"
             <> help "Evaluate program"
-        fileP = optional . strArgument $
+            )
+        file = File <$> strArgument (
                metavar "FILE"
             <> help "Read program from FILE"
-        optionsp = Options <$> versionP
-                           <*> evalP
-                           <*> fileP
-
-parserPrefs :: ParserPrefs
-parserPrefs = defaultPrefs { prefShowHelpOnError = True }
+            )
+        optionsP = Options <$> (eval <|> file)
 
 parseOptions :: IO Options
-parseOptions = customExecParser parserPrefs parserInfo
+parseOptions = execParser parserInfo
 
-
-showVersion :: IO ()
-showVersion = putStrLn "0.0.0.0"
-
-run :: Options -> IO ()
-run opts = case optEval opts of
-    Just prog -> runProg "" (T.pack prog)
-    Nothing   -> case optFile opts of
-        Just name -> T.readFile name >>= runProg name
-        Nothing   -> return ()
 
 runProg :: String -> T.Text -> IO ()
 runProg name prog = do
@@ -61,6 +48,6 @@ runProg name prog = do
 main :: IO ()
 main = do
     opts <- parseOptions
-    if optVersion opts
-        then showVersion
-        else run opts
+    case optInput opts of
+        Eval prog -> runProg "" (T.pack prog)
+        File name -> T.readFile name >>= runProg name
