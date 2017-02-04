@@ -17,7 +17,7 @@ parserInfo = info (helper <*> version <*> optionsP) $
            fullDesc
         <> header "grass - Grass interpreter"
     where
-        version = infoOption "0.0.0.0" $
+        version = infoOption "0.1.0.0" $
                short 'v'
             <> long "version"
             <> help "Show the version number"

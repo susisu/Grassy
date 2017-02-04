@@ -18,7 +18,7 @@ parserInfo = info (helper <*> version <*> options) $
            fullDesc
         <> header "plant - Untyped lambda calculus to Grass transpiler"
     where
-        version = infoOption "0.0.0.0" $
+        version = infoOption "0.1.0.0" $
                short 'v'
             <> long "version"
             <> help "Show the version number"

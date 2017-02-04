@@ -1,6 +1,6 @@
 name:                Grassy
-version:             0.0.0.0
--- synopsis:
+version:             0.1.0.0
+synopsis:            Toolkit for the Grass programming language
 -- description:
 homepage:            https://github.com/susisu/Grassy#readme
 license:             BSD3
