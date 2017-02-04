@@ -8,10 +8,10 @@ import System.Exit
 import Language.Grass.Interpreter (runGrass)
 
 
-data Options = Options
-    Bool             -- version
-    (Maybe String)   -- eval
-    (Maybe FilePath) -- filename
+data Options = Options { optVersion :: Bool
+                       , optEval    :: (Maybe String)
+                       , optFile    :: (Maybe FilePath)
+                       }
 
 parserInfo :: ParserInfo Options
 parserInfo = info (helper <*> optionsp) $
@@ -27,8 +27,12 @@ parserInfo = info (helper <*> optionsp) $
             <> long "eval"
             <> metavar "PROGRAM"
             <> help "Evaluate program"
-        filenameP = optional . strArgument $ metavar "FILENAME"
-        optionsp = Options <$> versionP <*> evalP <*> filenameP
+        fileP = optional . strArgument $
+               metavar "FILE"
+            <> help "Read program from FILE"
+        optionsp = Options <$> versionP
+                           <*> evalP
+                           <*> fileP
 
 parserPrefs :: ParserPrefs
 parserPrefs = defaultPrefs { prefShowHelpOnError = True }
@@ -40,6 +44,13 @@ parseOptions = customExecParser parserPrefs parserInfo
 showVersion :: IO ()
 showVersion = putStrLn "0.0.0.0"
 
+run :: Options -> IO ()
+run opts = case optEval opts of
+    Just prog -> runProg "" (T.pack prog)
+    Nothing   -> case optFile opts of
+        Just name -> T.readFile name >>= runProg name
+        Nothing   -> return ()
+
 runProg :: String -> T.Text -> IO ()
 runProg name prog = do
     res <- runGrass name prog
@@ -48,9 +59,8 @@ runProg name prog = do
         Right () -> return ()
 
 main :: IO ()
-main = parseOptions >>= withOpts
-    where
-        withOpts (Options True           _           _) = showVersion
-        withOpts (Options    _ (Just prog)           _) = runProg "" (T.pack prog)
-        withOpts (Options    _           _ (Just name)) = T.readFile name >>= runProg name
-        withOpts (Options    _           _           _) = return ()
+main = do
+    opts <- parseOptions
+    if optVersion opts
+        then showVersion
+        else run opts
