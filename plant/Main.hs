@@ -10,7 +10,7 @@ data Options = Options { optOptimize :: Bool
                        , optWide     :: Bool
                        , optWidth    :: (Maybe Int)
                        , optOutput   :: (Maybe FilePath)
-                       , optInput    :: FilePath
+                       , optInputs   :: [FilePath]
                        }
 
 parserInfo :: ParserInfo Options
@@ -41,14 +41,14 @@ parserInfo = info (helper <*> version <*> options) $
             <> long "output"
             <> metavar "OUTFILE"
             <> help "Write output to OUTFILE"
-        input = strArgument $
-               metavar "INFILE"
-            <> help "Read source from INFILE"
+        inputs = some . strArgument $
+               metavar "INFILES..."
+            <> help "Read sources from INFILES"
         options = Options <$> optimize
                           <*> wide
                           <*> width
                           <*> output
-                          <*> input
+                          <*> inputs
 
 parseOptions :: IO Options
 parseOptions = execParser parserInfo
@@ -57,7 +57,7 @@ parseOptions = execParser parserInfo
 main :: IO ()
 main = do
     opts <- parseOptions
-    let input = optInput opts
+    let inputs = optInputs opts
         opt = if optOptimize opts
             then fullOpt
             else G.noOpt
@@ -72,10 +72,12 @@ main = do
         write = case optOutput opts of
             Nothing     -> putStrLn
             Just output -> writeFile output . (++ "\n")
-    src <- T.readFile input
-    case G.transpile input src ctx opt cs of
-        Left err   -> die err
-        Right code -> write (format code)
+    srcs <- mapM T.readFile inputs
+    case concat <$> (sequence $ zipWith G.parse inputs srcs) of
+        Left err   -> die $ "ParseError at " ++ show err
+        Right defs -> case G.plant ctx defs opt cs of
+            Left err   -> die err
+            Right code -> write (format code)
     where
         fullOpt = G.Optimizer { G.globalOpt = G.elimUnused
                               , G.localOpt  = G.elimDuplicate
