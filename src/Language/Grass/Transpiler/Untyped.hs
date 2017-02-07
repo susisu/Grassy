@@ -7,7 +7,9 @@ module Language.Grass.Transpiler.Untyped
     , Optimizer (..)
     , noOpt
     , elimUnused
+    , elimUnused'
     , elimDuplicate
+    , elimDuplicate'
     , CharSet (CharSet)
     , defaultCharSet
     , wideCharSet

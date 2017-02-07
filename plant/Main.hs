@@ -79,14 +79,15 @@ main = do
             Left err   -> die err
             Right code -> write (format code)
     where
-        fullOpt = G.Optimizer { G.globalOpt = G.elimUnused
-                              , G.localOpt  = G.elimDuplicate
+        fullOpt = G.Optimizer { G.globalOpt = G.elimUnused effs
+                              , G.localOpt  = G.elimDuplicate'
                               }
         ctx = [ G.DefInfo "Out" 1
               , G.DefInfo "Succ" 1
               , G.DefInfo "w" 1
               , G.DefInfo "In" 1
               ]
+        effs = [True, False, False, True]
         shape _ ""       = ""
         shape width code = case drop width code of
             ""   ->  take width code
