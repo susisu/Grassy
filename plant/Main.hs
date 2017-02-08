@@ -8,8 +8,8 @@ import qualified Language.Grass.Transpiler.Untyped as G
 
 data Options = Options { optOptimize :: Bool
                        , optWide     :: Bool
-                       , optWidth    :: (Maybe Int)
-                       , optOutput   :: (Maybe FilePath)
+                       , optWidth    :: Maybe Int
+                       , optOutput   :: Maybe FilePath
                        , optInputs   :: [FilePath]
                        }
 
