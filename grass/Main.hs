@@ -7,6 +7,9 @@ import System.Exit
 
 import Language.Grass.Interpreter (runGrass)
 
+import qualified Paths_Grassy (version)
+import Data.Version
+
 
 data Options   = Options { optInput :: InputType }
 data InputType = Eval String
@@ -17,7 +20,7 @@ parserInfo = info (helper <*> version <*> optionsP) $
            fullDesc
         <> header "grass - Grass interpreter"
     where
-        version = infoOption "0.1.0.0" $
+        version = infoOption (showVersion Paths_Grassy.version) $
                short 'v'
             <> long "version"
             <> help "Show the version number"

@@ -6,6 +6,10 @@ import System.Exit
 
 import qualified Language.Grass.Transpiler.Untyped as G
 
+import qualified Paths_Grassy (version)
+import Data.Version
+
+
 data Options = Options { optOptimize :: Bool
                        , optWide     :: Bool
                        , optWidth    :: Maybe Int
@@ -18,7 +22,7 @@ parserInfo = info (helper <*> version <*> options) $
            fullDesc
         <> header "plant - Untyped lambda calculus to Grass transpiler"
     where
-        version = infoOption "0.1.0.0" $
+        version = infoOption (showVersion Paths_Grassy.version) $
                short 'v'
             <> long "version"
             <> help "Show the version number"
