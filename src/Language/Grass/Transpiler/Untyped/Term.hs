@@ -19,9 +19,9 @@ data Term =
     | Let SourcePos String Term Term
 
 instance Show Term where
-    show (Var _ name)    = name
+    show (Var _ name)     = name
     show (Abs _ name x)   = "fun " ++ name ++ " -> " ++ show x
-    show (App _ x y)     = "(" ++ show x ++ ") (" ++ show y ++ ")"
+    show (App _ x y)      = "(" ++ show x ++ ") (" ++ show y ++ ")"
     show (Let _ name x y) = "let " ++ name ++ " = " ++ show x ++ " in " ++ show y
 
 data Def = Def SourcePos String Term
