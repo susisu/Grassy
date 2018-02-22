@@ -1,6 +1,7 @@
-### https://raw.github.com/github/gitignore/be3333655bffe9507d66cc864aee95ed6052b4ed/haskell.gitignore
+### https://raw.github.com/github/gitignore/9e018473e80cf262d25841facbbd69e7f1a4ef41/Haskell.gitignore
 
 dist
+dist-*
 cabal-dev
 *.o
 *.hi
@@ -15,7 +16,12 @@ cabal.sandbox.config
 *.prof
 *.aux
 *.hp
+*.eventlog
 .stack-work/
+cabal.project.local
+cabal.project.local~
+.HTF/
+.ghc.environment.*
 
 
 temp

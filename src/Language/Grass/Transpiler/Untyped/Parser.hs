@@ -1,36 +1,39 @@
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE RankNTypes            #-}
 
-module Language.Grass.Transpiler.Untyped.Parser
-    ( parse
-    ) where
+module Language.Grass.Transpiler.Untyped.Parser (
+    parse
+  ) where
 
-import Control.Monad.Identity
-import qualified Text.Parsec as P
-import qualified Text.Parsec.Token as TP
-import Text.Parsec.Prim ((<|>))
+import           Control.Applicative
+import           Control.Monad.Identity
+import           Data.Functor
+import qualified Text.Parsec            as P
+import qualified Text.Parsec.Token      as TP
 
 import Language.Grass.Transpiler.Untyped.Term
 
 
-type Parser a = forall s m. P.Stream s m Char => P.ParsecT s () m a
+type Parser a = forall s m. P.Stream s m Char
+  => P.ParsecT s () m a
 
 
 -- token parsers
 langDef :: P.Stream s m Char => TP.GenLanguageDef s u m
-langDef = TP.LanguageDef
-    { TP.commentStart    = "(*"
-    , TP.commentEnd      = "*)"
-    , TP.commentLine     = ""
-    , TP.nestedComments  = True
-    , TP.identStart      = P.letter
-    , TP.identLetter     = P.alphaNum <|> P.oneOf "_'"
-    , TP.opStart         = TP.opLetter langDef
-    , TP.opLetter        = P.oneOf "=->"
-    , TP.reservedNames   = ["fun", "let", "in"]
-    , TP.reservedOpNames = ["=", "->"]
-    , TP.caseSensitive   = True
-    }
+langDef = TP.LanguageDef {
+    TP.commentStart    = "(*"
+  , TP.commentEnd      = "*)"
+  , TP.commentLine     = ""
+  , TP.nestedComments  = True
+  , TP.identStart      = P.letter
+  , TP.identLetter     = P.alphaNum <|> P.oneOf "_'"
+  , TP.opStart         = TP.opLetter langDef
+  , TP.opLetter        = P.oneOf "=->"
+  , TP.reservedNames   = ["fun", "let", "in"]
+  , TP.reservedOpNames = ["=", "->"]
+  , TP.caseSensitive   = True
+  }
 
 tp :: P.Stream s m Char => TP.GenTokenParser s u m
 tp = TP.makeTokenParser langDef
@@ -55,8 +58,8 @@ parens = TP.parens tp
 
 
 -- terms
-pattern :: Parser String
-pattern = identifier <|> (reserved "_" *> pure "_")
+pat :: Parser String
+pat = identifier <|> (reserved "_" $> "_")
 
 
 term :: Parser Term
@@ -68,7 +71,7 @@ appTerm = variable <|> parens term
 
 variable :: Parser Term
 variable = do
-    pos  <- P.getPosition
+    pos <- P.getPosition
     name <- identifier
     return $ Var pos name
 
@@ -76,14 +79,14 @@ abstraction :: Parser Term
 abstraction = flip P.label "abstraction" $ do
     pos <- P.getPosition
     reserved "fun"
-    params <- P.many1 pattern
+    params <- P.many1 pat
     reservedOp "->"
     body <- term
     return $ foldr (Abs pos) body params
 
 application :: Parser Term
 application = flip P.label "application" $ do
-    pos  <- P.getPosition
+    pos <- P.getPosition
     func <- appTerm
     args <- P.many appTerm
     return $ foldl (App pos) func args
@@ -92,8 +95,8 @@ binding :: Parser Term
 binding = flip P.label "binding" $ do
     pos <- P.getPosition
     reserved "let"
-    name   <- pattern
-    params <- P.many pattern
+    name <- pat
+    params <- P.many pat
     reservedOp "="
     val <- term
     reserved "in"
@@ -106,8 +109,8 @@ definition :: Parser Def
 definition = flip P.label "definition" $ do
     pos <- P.getPosition
     reserved "let"
-    name   <- pattern
-    params <- P.many pattern
+    name <- pat
+    params <- P.many pat
     reservedOp "="
     val <- term
     return $ Def pos name (foldr (Abs pos) val params)
@@ -124,5 +127,6 @@ program = do
     return defs
 
 
-parse :: P.Stream s Identity Char => String -> s -> Either P.ParseError [Def]
-parse name src = P.parse program name src
+parse :: P.Stream s Identity Char
+  => String -> s -> Either P.ParseError [Def]
+parse = P.parse program

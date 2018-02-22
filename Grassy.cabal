@@ -1,5 +1,5 @@
 name:                Grassy
-version:             0.2.0.0
+version:             0.2.0.1
 synopsis:            Toolkit for the Grass programming language
 -- description:
 homepage:            https://github.com/susisu/Grassy#readme
@@ -7,30 +7,32 @@ license:             BSD3
 license-file:        LICENSE
 author:              Susisu
 maintainer:          susisu2413@yahoo.co.jp
-copyright:           copyright (c) 2017 Susisu
+copyright:           copyright (c) 2017-2018 Susisu
 -- category:
 build-type:          Simple
 extra-source-files:  README.md
-cabal-version:       >=1.10
+cabal-version:       >=2.0
 
 executable grass
   hs-source-dirs:      grass
   main-is:             Main.hs
   ghc-options:         -O2 -Wall -threaded -rtsopts -with-rtsopts=-N
-  build-depends:       base
-                     , optparse-applicative
-                     , text
+  build-depends:       base >= 4.7 && < 5
+                     , optparse-applicative >= 0.14 && < 0.15
+                     , text >= 1.2 && < 2
                      , Grassy
+  other-modules:       Paths_Grassy
   default-language:    Haskell2010
 
 executable plant
   hs-source-dirs:      plant
   main-is:             Main.hs
   ghc-options:         -O2 -Wall -threaded -rtsopts -with-rtsopts=-N
-  build-depends:       base
-                     , optparse-applicative
-                     , text
+  build-depends:       base >= 4.7 && < 5
+                     , optparse-applicative >= 0.14 && < 0.15
+                     , text >= 1.2 && < 2
                      , Grassy
+  other-modules:       Paths_Grassy
   default-language:    Haskell2010
 
 library
@@ -44,10 +46,10 @@ library
                      , Language.Grass.Transpiler.Untyped.Transformation
                      , Language.Grass.Transpiler.Untyped.Optimization
   build-depends:       base >= 4.7 && < 5
-                     , bytestring
-                     , mtl
-                     , parsec
-                     , safe
+                     , bytestring >= 0.10.8 && < 0.11
+                     , mtl >= 2.2 && < 3
+                     , parsec >= 3.1 && < 4
+                     , safe >= 0.3.10 && < 0.4
   default-language:    Haskell2010
   ghc-options:         -O2 -Wall
 
